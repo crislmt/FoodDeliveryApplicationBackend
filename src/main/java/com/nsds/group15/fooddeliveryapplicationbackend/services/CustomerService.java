@@ -39,7 +39,6 @@ public class CustomerService {
         producer.beginTransaction();//not totally sure if the beginTransaction has to be before the if statement
         //TODO The list of the customer must become persistent in someway, fix this later
         if(!customers.contains(c)){
-            customers.add(c);
             String value=c.getSsn()+"#"+c.getName()+"#"+c.getSurname()+"#"+c.getAddress();
             String key="Key1"; //TODO for now we use a single key for all message and one single partition
             ProducerRecord<String, String> record = new ProducerRecord<>(registrationTopic, key, value);
@@ -47,6 +46,7 @@ public class CustomerService {
             try {
                 RecordMetadata ack = future.get();
                 System.out.println("Success!");
+                customers.add(c);
             } catch (InterruptedException | ExecutionException e1) {
                 e1.printStackTrace();
             }
@@ -57,7 +57,7 @@ public class CustomerService {
         producer.commitTransaction();
     }
 
-    public void initialize(){
+    private void initialize(){
         final Properties props = new Properties();
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, serverAddr);
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
