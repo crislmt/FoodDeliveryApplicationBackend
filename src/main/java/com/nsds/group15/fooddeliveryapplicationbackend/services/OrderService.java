@@ -8,15 +8,15 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 public class OrderService {
 
     private static int id=0;
+
+    private List<Order> orders;
     private Map<String, Integer> productQuantity;
     private String insertOrderTopic="InsertOrderTopic";
     private KafkaProducer<String,String> producer;
@@ -27,6 +27,7 @@ public class OrderService {
 
     public OrderService(){
         productQuantity=new HashMap<>();
+        orders=new ArrayList<>();
         initialize();
     }
     private void initialize(){
@@ -82,6 +83,7 @@ public class OrderService {
         try {
             RecordMetadata ack = future.get();
             productQuantity.put(o.getProductName(),newQuantity);
+            orders.add(o);
             System.out.println("Success!");
         } catch (InterruptedException | ExecutionException e1) {
             e1.printStackTrace();
@@ -89,6 +91,15 @@ public class OrderService {
         producer.commitTransaction();
     }
 
+    public List<Order> getOrderByEmail(String email){
+        List<Order> result=new ArrayList<>();
+        for(Order o : orders){
+            if(o.getCustomerEmail().equals(email)){
+                result.add(o);
+            }
+        }
+        return result;
+    }
 
 
 }
