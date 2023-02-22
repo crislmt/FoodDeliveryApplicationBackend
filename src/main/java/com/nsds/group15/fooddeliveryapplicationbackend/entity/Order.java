@@ -1,8 +1,19 @@
 package com.nsds.group15.fooddeliveryapplicationbackend.entity;
 
 public class Order {
+
+    private String customerEmail;
     private String productName;
     private int quantity;
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
+    }
+
     public String getProductName() {
         return productName;
     }

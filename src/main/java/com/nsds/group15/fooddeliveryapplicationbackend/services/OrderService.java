@@ -1,5 +1,6 @@
 package com.nsds.group15.fooddeliveryapplicationbackend.services;
 
+import com.nsds.group15.fooddeliveryapplicationbackend.entity.Order;
 import com.nsds.group15.fooddeliveryapplicationbackend.exception.ProductAlreadyExistsException;
 import com.nsds.group15.fooddeliveryapplicationbackend.exception.ProductDoNotExistsException;
 
@@ -41,9 +42,9 @@ public class OrderService {
         }
     }
 
-    public void insertOrder()
+    public void insertOrder(Order o){
 
 
-
+    }
 
 }
