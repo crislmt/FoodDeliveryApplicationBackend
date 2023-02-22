@@ -7,6 +7,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,6 +15,7 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+@Service
 public class OrderService {
 
     private static int id=0;
@@ -41,10 +43,11 @@ public class OrderService {
 
 
     //Method to change the quantity of a product in the local state, can be persisted
-    public void updateQuantity(String productName, int quantity) throws ProductDoNotExistsException {
+    public void updateQuantity(String productName, int quantity) throws ProductDoNotExistsException, NegativeQuantityException {
         if(productQuantity.containsKey(productName)){
             throw new ProductDoNotExistsException();
         }
+        else if(quantity<0) throw new NegativeQuantityException();
         else{
             int newQuantity=productQuantity.get(productName);
             newQuantity=newQuantity+quantity;
@@ -55,10 +58,11 @@ public class OrderService {
 
 
 
-    public void addProduct(String productName, int quantity) throws ProductAlreadyExistsException {
+    public void addProduct(String productName, int quantity) throws ProductAlreadyExistsException, NegativeQuantityException {
         if(productQuantity.containsKey(productName)){
             throw new ProductAlreadyExistsException();
         }
+        else if(quantity<0) throw new NegativeQuantityException();
         else{
             productQuantity.put(productName,quantity);
         }
