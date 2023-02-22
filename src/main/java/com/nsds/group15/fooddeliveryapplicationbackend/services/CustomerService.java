@@ -1,8 +1,20 @@
 package com.nsds.group15.fooddeliveryapplicationbackend.services;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.StringSerializer;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 class Customer{
     private String email,name,surname,address;
@@ -60,18 +72,53 @@ public class CustomerService {
 
     private List<Customer> customers;
     private String registrationTopic="RegistrationTopic";
-    private KafkaProducer<String,String> message;
+    private KafkaProducer<String,String> producer;
+    private  String serverAddr = "localhost:9092";
+    private static final String producerTransactionalId = "custmerServiceTransactionalId";
 
 
-    public boolean Registration(Customer c) throws CustomerAlreadyExistsException{
+    public CustomerService(){
+        initialize();
+    }
+    public CustomerService(String serverAddr){
+        initialize();
+        this.serverAddr=serverAddr;
+    }
+
+
+
+    public void Registration(Customer c) throws CustomerAlreadyExistsException{
+        //all this has to be in a transaction, because if one thing fail the registration must fail
+        producer.initTransactions();
+        producer.beginTransaction();//not totally sure if the beginTransaction has to be before the if statement
+        //The list of the customer must become persistent in someway, fix this later
         if(!customers.contains(c)){
             customers.add(c);
+            String value=c.getSsn()+"#"+c.getName()+"#"+c.getSurname()+"#"+c.getAddress();
+            String key="Key1"; //to be changed, for now we use a single key for all message and one single partition
+            ProducerRecord<String, String> record = new ProducerRecord<>(registrationTopic, key, value);
+            final Future<RecordMetadata> future = producer.send(record);
+            try {
+                RecordMetadata ack = future.get();
+                System.out.println("Success!");
+            } catch (InterruptedException | ExecutionException e1) {
+                e1.printStackTrace();
+            }
         }
-        throw new CustomerAlreadyExistsException();
+        else {
+            throw new CustomerAlreadyExistsException();
+        }
+        producer.commitTransaction();
     }
 
     public void initialize(){
-
+        final Properties props = new Properties();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, serverAddr);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, producerTransactionalId);
+        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, String.valueOf(true));
+        producer = new KafkaProducer<>(props);
     }
 
 
