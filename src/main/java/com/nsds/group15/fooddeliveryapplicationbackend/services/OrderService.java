@@ -70,7 +70,7 @@ public class OrderService {
         int newQuantity=quantity-o.getQuantity();
         if(o.getQuantity()<0) throw new NegativeQuantityException();
         if(newQuantity<0) throw new QuantityNotAvailableException();
-        String orderMessage=o.getCustomerEmail()+"#"+o.getProductName()+"#"+o.getQuantity();
+        String orderMessage=o.getCode()+"#"+o.getCustomerEmail();
         String key="Key1"; //TODO for now we use a single key for all message and one single partition
         ProducerRecord<String, String> record = new ProducerRecord<>(insertOrderTopic, key, orderMessage);
         final Future<RecordMetadata> future = producer.send(record);
