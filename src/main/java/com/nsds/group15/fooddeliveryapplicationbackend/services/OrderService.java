@@ -10,6 +10,8 @@ public class OrderService {
 
     private Map<String, Integer> productQuantity;
 
+
+
     public OrderService(){
         productQuantity=new HashMap<>();
     }
@@ -38,4 +40,10 @@ public class OrderService {
             productQuantity.put(productName,quantity);
         }
     }
+
+    public void insertOrder()
+
+
+
+
 }
