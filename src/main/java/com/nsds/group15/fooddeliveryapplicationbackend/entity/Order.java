@@ -2,6 +2,8 @@ package com.nsds.group15.fooddeliveryapplicationbackend.entity;
 
 public class Order {
 
+    private int code;
+
     private String customerEmail;
     private String productName;
     private int quantity;
@@ -29,7 +31,13 @@ public class Order {
     public void setQuantity(int quantity) {
         this.quantity = quantity;
     }
+    public int getCode() {
+        return code;
+    }
 
+    public void setCode(int code) {
+        this.code = code;
+    }
 
 
 }
