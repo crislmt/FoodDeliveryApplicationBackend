@@ -1,10 +1,7 @@
 package com.nsds.group15.fooddeliveryapplicationbackend.services;
 
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Order;
-import com.nsds.group15.fooddeliveryapplicationbackend.exception.CustomerAlreadyExistsException;
-import com.nsds.group15.fooddeliveryapplicationbackend.exception.ProductAlreadyExistsException;
-import com.nsds.group15.fooddeliveryapplicationbackend.exception.ProductDoNotExistsException;
-import com.nsds.group15.fooddeliveryapplicationbackend.exception.QuantityNotAvailableException;
+import com.nsds.group15.fooddeliveryapplicationbackend.exception.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -66,11 +63,12 @@ public class OrderService {
         }
     }
 
-    public void insertOrder(Order o) throws QuantityNotAvailableException {
+    public void insertOrder(Order o) throws QuantityNotAvailableException, NegativeQuantityException {
         producer.initTransactions();
         producer.beginTransaction();
         int quantity=productQuantity.get(o.getProductName());
         int newQuantity=quantity-o.getQuantity();
+        if(o.getQuantity()<0) throw new NegativeQuantityException();
         if(newQuantity<0) throw new QuantityNotAvailableException();
         String orderMessage=o.getCustomerEmail()+"#"+o.getProductName()+"#"+o.getQuantity();
         String key="Key1"; //TODO for now we use a single key for all message and one single partition
