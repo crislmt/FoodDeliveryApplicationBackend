@@ -1,7 +1,7 @@
 package com.nsds.group15.fooddeliveryapplicationbackend.controllers;
 
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Customer;
-import com.nsds.group15.fooddeliveryapplicationbackend.services.CustomerAlreadyExistsException;
+import com.nsds.group15.fooddeliveryapplicationbackend.exception.CustomerAlreadyExistsException;
 import com.nsds.group15.fooddeliveryapplicationbackend.services.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
