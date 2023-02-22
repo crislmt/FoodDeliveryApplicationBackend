@@ -16,6 +16,7 @@ import java.util.concurrent.Future;
 
 public class OrderService {
 
+    private static int id=0;
     private Map<String, Integer> productQuantity;
     private String insertOrderTopic="InsertOrderTopic";
     private KafkaProducer<String,String> producer;
@@ -70,6 +71,10 @@ public class OrderService {
         int newQuantity=quantity-o.getQuantity();
         if(o.getQuantity()<0) throw new NegativeQuantityException();
         if(newQuantity<0) throw new QuantityNotAvailableException();
+        synchronized (this){
+            o.setCode(id);
+            id++;
+        }
         String orderMessage=o.getCode()+"#"+o.getCustomerEmail();
         String key="Key1"; //TODO for now we use a single key for all message and one single partition
         ProducerRecord<String, String> record = new ProducerRecord<>(insertOrderTopic, key, orderMessage);
