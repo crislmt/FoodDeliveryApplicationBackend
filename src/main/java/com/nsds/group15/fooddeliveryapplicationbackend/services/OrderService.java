@@ -1,20 +1,44 @@
 package com.nsds.group15.fooddeliveryapplicationbackend.services;
 
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Order;
+import com.nsds.group15.fooddeliveryapplicationbackend.exception.CustomerAlreadyExistsException;
 import com.nsds.group15.fooddeliveryapplicationbackend.exception.ProductAlreadyExistsException;
 import com.nsds.group15.fooddeliveryapplicationbackend.exception.ProductDoNotExistsException;
+import com.nsds.group15.fooddeliveryapplicationbackend.exception.QuantityNotAvailableException;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 public class OrderService {
 
     private Map<String, Integer> productQuantity;
+    private String insertOrderTopic="InsertOrderTopic";
+    private KafkaProducer<String,String> producer;
+    private  String serverAddr = "localhost:9092";
+    private static final String producerTransactionalId = "OrderServiceTransactionalId";
 
 
 
     public OrderService(){
         productQuantity=new HashMap<>();
+        initialize();
+    }
+    private void initialize(){
+        final Properties props = new Properties();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, serverAddr);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, producerTransactionalId);
+        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, String.valueOf(true));
+        producer = new KafkaProducer<>(props);
     }
 
 
@@ -42,9 +66,26 @@ public class OrderService {
         }
     }
 
-    public void insertOrder(Order o){
-
-
+    public void insertOrder(Order o) throws QuantityNotAvailableException {
+        producer.initTransactions();
+        producer.beginTransaction();
+        int quantity=productQuantity.get(o.getProductName());
+        int newQuantity=quantity-o.getQuantity();
+        if(newQuantity<0) throw new QuantityNotAvailableException();
+        String orderMessage=o.getCustomerEmail()+"#"+o.getProductName()+"#"+o.getQuantity();
+        String key="Key1"; //TODO for now we use a single key for all message and one single partition
+        ProducerRecord<String, String> record = new ProducerRecord<>(insertOrderTopic, key, orderMessage);
+        final Future<RecordMetadata> future = producer.send(record);
+        try {
+            RecordMetadata ack = future.get();
+            productQuantity.put(o.getProductName(),newQuantity);
+            System.out.println("Success!");
+        } catch (InterruptedException | ExecutionException e1) {
+            e1.printStackTrace();
+        }
+        producer.commitTransaction();
     }
+
+
 
 }
