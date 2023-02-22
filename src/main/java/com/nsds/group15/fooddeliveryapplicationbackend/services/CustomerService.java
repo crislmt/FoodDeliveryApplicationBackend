@@ -1,17 +1,13 @@
 package com.nsds.group15.fooddeliveryapplicationbackend.services;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import com.nsds.group15.fooddeliveryapplicationbackend.exception.CustomerAlreadyExistsException;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -87,7 +83,7 @@ public class CustomerService {
 
 
 
-    public void Registration(Customer c) throws CustomerAlreadyExistsException{
+    public void Registration(Customer c) throws CustomerAlreadyExistsException {
         //all this has to be in a transaction, because if one thing fail the registration must fail
         producer.initTransactions();
         producer.beginTransaction();//not totally sure if the beginTransaction has to be before the if statement

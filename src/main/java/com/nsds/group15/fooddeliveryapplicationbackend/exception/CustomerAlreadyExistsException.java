@@ -1,4 +1,4 @@
-package com.nsds.group15.fooddeliveryapplicationbackend.services;
+package com.nsds.group15.fooddeliveryapplicationbackend.exception;
 
 public class CustomerAlreadyExistsException extends Exception {
 }
