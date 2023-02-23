@@ -9,6 +9,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -23,12 +24,10 @@ public class CustomerService {
     private static final String producerTransactionalId = "custmerServiceTransactionalId";
 
 
+
     public CustomerService(){
         initialize();
-    }
-    public CustomerService(String serverAddr){
-        initialize();
-        this.serverAddr=serverAddr;
+        this.customers=new ArrayList<>();
     }
 
 
@@ -36,9 +35,10 @@ public class CustomerService {
     public void registration(Customer c) throws CustomerAlreadyExistsException{
         //all this has to be in a transaction, because if one thing fail the registration must fail
         producer.initTransactions();
-        producer.beginTransaction();//not totally sure if the beginTransaction has to be before the if statement
+       //not totally sure if the beginTransaction has to be before the if statement
         //TODO The list of the customer must become persistent in someway, fix this later
         if(!customers.contains(c)){
+            producer.beginTransaction();
             String value=c.getSsn()+"#"+c.getName()+"#"+c.getSurname()+"#"+c.getAddress();
             String key="Key1"; //TODO for now we use a single key for all message and one single partition
             ProducerRecord<String, String> record = new ProducerRecord<>(registrationTopic, key, value);
@@ -47,14 +47,17 @@ public class CustomerService {
                 RecordMetadata ack = future.get();
                 System.out.println("Success!");
                 customers.add(c);
+                producer.commitTransaction();
             } catch (InterruptedException | ExecutionException e1) {
+                producer.abortTransaction();
                 e1.printStackTrace();
             }
         }
         else {
+            producer.abortTransaction();
             throw new CustomerAlreadyExistsException();
         }
-        producer.commitTransaction();
+
     }
 
     private void initialize(){
