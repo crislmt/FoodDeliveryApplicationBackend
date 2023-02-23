@@ -33,6 +33,7 @@ public class CustomerService {
 
 
     public void registration(Customer c) throws CustomerAlreadyExistsException{
+
         //all this has to be in a transaction, because if one thing fail the registration must fail
 
        //not totally sure if the beginTransaction has to be before the if statement
@@ -59,6 +60,7 @@ public class CustomerService {
         }
 
     }
+
 
     private void initialize(){
         final Properties props = new Properties();

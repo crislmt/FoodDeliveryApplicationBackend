@@ -13,14 +13,11 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 public class ShippingService {
     private List<Shipping> shippings;
-    private List<Customer> customers;
+    private Map<String, Customer> customers;
     private List<Order> orders;
     private String insertOrderTopic="InsertOrderTopic";
     private String registrationTopic="RegistrationTopic";
@@ -59,6 +56,13 @@ public class ShippingService {
     private void updateListOfCustomers(){
         final ConsumerRecords<String, String> records = registrationConsumer.poll(Duration.of(10, ChronoUnit.SECONDS));
         for (final ConsumerRecord<String, String> record : records) {
+            StringTokenizer stringTokenizer = new StringTokenizer(record.value(), "#");
+            Customer customer = new Customer("", "", "", "");
+            customer.setEmail(stringTokenizer.nextToken());
+            customer.setName(stringTokenizer.nextToken());
+            customer.setSurname(stringTokenizer.nextToken());
+            customer.setAddress(stringTokenizer.nextToken());
+            customers.put(customer.getEmail(), customer);
             System.out.println("Partition: " + record.partition() +
                     "\tOffset: " + record.offset() +
                     "\tKey: " + record.key() +
@@ -68,8 +72,18 @@ public class ShippingService {
         }
     }
 
-    private void updateListOfOrder(){
-
+    private void updateListOfShippings(){
+        final ConsumerRecords<String, String> records = orderConsumer.poll(Duration.of(10, ChronoUnit.SECONDS));
+        for (final ConsumerRecord<String, String> record : records) {
+            Shipping shipping= new Shipping(record.value());
+            Customer customer=customers.get(shipping.getCustomerEmail());
+            shipping.setAddress(customer.getAddress());
+            System.out.println("Partition: " + record.partition() +
+                    "\tOffset: " + record.offset() +
+                    "\tKey: " + record.key() +
+                    "\tValue: " + record.value()
+            );
+        }
     }
 
 

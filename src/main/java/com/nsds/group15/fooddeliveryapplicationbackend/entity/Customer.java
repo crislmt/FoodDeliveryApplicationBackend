@@ -22,8 +22,8 @@ public class Customer{
         return email;
     }
 
-    public void setSsn(String ssn) {
-        this.email = ssn;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getName() {
