@@ -64,6 +64,7 @@ public class ShippingService {
                     "\tKey: " + record.key() +
                     "\tValue: " + record.value()
             );
+
         }
     }
 

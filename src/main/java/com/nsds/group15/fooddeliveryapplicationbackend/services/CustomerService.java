@@ -39,7 +39,7 @@ public class CustomerService {
         //TODO The list of the customer must become persistent in someway, fix this later
         if(!customers.contains(c)){
             producer.beginTransaction();
-            String value=c.getSsn()+"#"+c.getName()+"#"+c.getSurname()+"#"+c.getAddress();
+            String value=c.getEmail()+"#"+c.getName()+"#"+c.getSurname()+"#"+c.getAddress();
             String key="Key1"; //TODO for now we use a single key for all message and one single partition
             ProducerRecord<String, String> record = new ProducerRecord<>(registrationTopic, key, value);
             final Future<RecordMetadata> future = producer.send(record);

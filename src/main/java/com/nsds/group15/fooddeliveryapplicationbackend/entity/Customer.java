@@ -18,7 +18,7 @@ public class Customer{
         return this.email.equals(other.email);
     }
 
-    public String getSsn() {
+    public String getEmail() {
         return email;
     }
 
