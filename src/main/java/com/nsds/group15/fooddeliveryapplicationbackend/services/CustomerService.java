@@ -48,6 +48,9 @@ public class CustomerService {
                 RecordMetadata ack = future.get();
                 System.out.println("Success!");
                 customers.add(c);
+                for(Customer c1:customers){
+                    System.out.println(c1.getEmail());
+                }
                 producer.commitTransaction();
             } catch (InterruptedException | ExecutionException e1) {
                 producer.abortTransaction();
@@ -55,7 +58,6 @@ public class CustomerService {
             }
         }
         else {
-            producer.abortTransaction();
             throw new CustomerAlreadyExistsException();
         }
 

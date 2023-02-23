@@ -15,7 +15,7 @@ public class RegistrationController {
     private CustomerService customerService;
 
     @PutMapping("/register")
-    public ResponseEntity registerUser(@RequestParam String email, String name, String surname, String address){
+    public ResponseEntity registerUser(@RequestParam String email, @RequestParam String name, @RequestParam String surname,@RequestParam String address){
         try{
             Customer c = new Customer(email,name,surname,address);
             customerService.registration(c);
