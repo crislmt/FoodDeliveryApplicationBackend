@@ -40,6 +40,7 @@ public class OrderService {
         props.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, producerTransactionalId);
         props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, String.valueOf(true));
         producer = new KafkaProducer<>(props);
+        producer.initTransactions();
     }
 
 
@@ -70,7 +71,7 @@ public class OrderService {
     }
 
     public void insertOrder(Order o) throws QuantityNotAvailableException, NegativeQuantityException {
-        producer.initTransactions();
+
         producer.beginTransaction();
         int quantity=productQuantity.get(o.getProductName());
         int newQuantity=quantity-o.getQuantity();

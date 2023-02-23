@@ -34,7 +34,7 @@ public class CustomerService {
 
     public void registration(Customer c) throws CustomerAlreadyExistsException{
         //all this has to be in a transaction, because if one thing fail the registration must fail
-        producer.initTransactions();
+
        //not totally sure if the beginTransaction has to be before the if statement
         //TODO The list of the customer must become persistent in someway, fix this later
         if(!customers.contains(c)){
@@ -68,6 +68,7 @@ public class CustomerService {
         props.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, producerTransactionalId);
         props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, String.valueOf(true));
         producer = new KafkaProducer<>(props);
+        producer.initTransactions();
     }
 
 
