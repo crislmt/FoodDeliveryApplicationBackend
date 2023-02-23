@@ -33,7 +33,7 @@ public class ShippingService {
         initialize();
         this.shippings=new ArrayList<>();
         this.orders=new ArrayList<>();
-        this.customers=new ArrayList<>();
+        this.customers=new HashMap<>();
     }
 
 
