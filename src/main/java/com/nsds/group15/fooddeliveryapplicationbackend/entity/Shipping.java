@@ -1,6 +1,9 @@
 package com.nsds.group15.fooddeliveryapplicationbackend.entity;
 
 public class Shipping {
+    private int orderCode;
+    private String address;
+    private Boolean delivered;
     public int getOrderCode() {
         return orderCode;
     }
@@ -25,7 +28,5 @@ public class Shipping {
         this.delivered = delivered;
     }
 
-    private int orderCode;
-    private String address;
-    private Boolean delivered;
+
 }
