@@ -1,7 +1,4 @@
 package com.nsds.group15.fooddeliveryapplicationbackend.services;
-
-
-
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Customer;
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Order;
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Shipping;
@@ -10,11 +7,13 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+@Service
 public class ShippingService {
     private List<Shipping> shippings;
     private Map<String, Customer> customers;
