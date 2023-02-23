@@ -87,6 +87,22 @@ public class ShippingService {
     }
 
 
+    public List<Shipping> getShippingsByEmail(String email){
+        List<Shipping> result=new ArrayList<>();
+        return result;
+    }
+    public List<Shipping> getShippings(){
+        return shippings;
+    }
+
+    public void deliveryShipping(int code){
+
+    }
+
+
+
+
+
     public static void main(String[] args){
 
         ShippingService ss=new ShippingService();
