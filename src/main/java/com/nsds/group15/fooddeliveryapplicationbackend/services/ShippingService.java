@@ -88,19 +88,31 @@ public class ShippingService {
 
 
     public List<Shipping> getShippingsByEmail(String email){
+        updateListOfCustomers();
+        updateListOfShippings();
         List<Shipping> result=new ArrayList<>();
+        for(Shipping s:shippings){
+            if(s.getCustomerEmail().equals(email)){
+                result.add(s);
+            }
+        }
         return result;
     }
     public List<Shipping> getShippings(){
+        updateListOfCustomers();
+        updateListOfShippings();
         return shippings;
     }
 
     public void deliveryShipping(int code){
-
+        updateListOfCustomers();
+        updateListOfShippings();
+        for(Shipping s:shippings){
+            if(s.getOrderCode()==code){
+                s.setDelivered(true);
+            }
+        }
     }
-
-
-
 
 
     public static void main(String[] args){
