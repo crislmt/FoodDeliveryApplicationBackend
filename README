@@ -1,0 +1,5 @@
+Spring does not create a new instance of a service for every rest request by default. Spring beans are singleton scoped, which means that only one instance of each bean is created per container123. This improves performance and memory usage.
+
+However, you can change the scope of a bean using the @Scope annotation or the scope attribute in XML configuration24. There are different types of scopes available, such as prototype, request, session, application, and websocket24. Each scope has its own life cycle and visibility rules.
+
+For example, if you want to create a new instance of a service for every rest request, you can use @Scope(“request”) on your service class. This will make your service bean request scoped, which means that it will be created and destroyed for each HTTP request2
