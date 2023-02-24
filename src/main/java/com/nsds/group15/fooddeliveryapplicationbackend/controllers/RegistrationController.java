@@ -14,7 +14,7 @@ public class RegistrationController {
     @Autowired
     private CustomerService customerService;
 
-    @PutMapping("/register")
+    @PostMapping("/register")
     public ResponseEntity registerUser(@RequestParam String email, @RequestParam String name, @RequestParam String surname,@RequestParam String address){
         try{
             Customer c = new Customer(email,name,surname,address);

@@ -18,7 +18,7 @@ public class OrderController {
     OrderService orderService;
 
     @PutMapping("/addProduct")
-    public ResponseEntity addProduct(String productName, int quantity){
+    public ResponseEntity addProduct(@RequestParam String productName, @RequestParam int quantity){
         try{
             orderService.addProduct(productName,quantity);
             return new ResponseEntity<>("Ok", HttpStatus.OK);

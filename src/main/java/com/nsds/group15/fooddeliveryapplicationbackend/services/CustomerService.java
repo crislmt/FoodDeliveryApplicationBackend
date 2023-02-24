@@ -79,7 +79,6 @@ public class CustomerService {
     public static void main(String[] args) {
         CustomerService cs=new CustomerService();
 
-
         for(int i=9;i<100;i++) {
             String email = "e" + i;
             String nome = "n" + i;
