@@ -1,12 +1,20 @@
 package com.nsds.group15.fooddeliveryapplicationbackend.entity;
 
+import java.util.StringTokenizer;
+
 public class Order {
 
     private int code;
-
     private String customerEmail;
     private String productName;
     private int quantity;
+
+    public Order(String record){
+        StringTokenizer stk = new StringTokenizer(record, "#");
+        this.customerEmail = stk.nextToken();
+        this.productName= stk.nextToken();
+        this.quantity = Integer.parseInt(stk.nextToken());
+    }
 
     public String getCustomerEmail() {
         return customerEmail;

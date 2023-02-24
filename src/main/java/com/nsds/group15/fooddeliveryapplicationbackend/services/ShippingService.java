@@ -2,6 +2,7 @@ package com.nsds.group15.fooddeliveryapplicationbackend.services;
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Customer;
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Order;
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Shipping;
+import com.nsds.group15.fooddeliveryapplicationbackend.exception.OrderDoNotExists;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -103,14 +104,18 @@ public class ShippingService {
         return shippings;
     }
 
-    public void deliveryShipping(int code){
+    public void deliveryShipping(int code) throws OrderDoNotExists {
         updateListOfCustomers();
         updateListOfShippings();
+        boolean found=false;
         for(Shipping s:shippings){
             if(s.getOrderCode()==code){
                 s.setDelivered(true);
+                found=true;
+                break;
             }
         }
+        if(!found) throw new OrderDoNotExists();
     }
 
 

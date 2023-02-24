@@ -45,9 +45,9 @@ public class OrderController {
     };
 
     @PostMapping("/insertOrder")
-    public ResponseEntity insertOrder(Order order){
+    public ResponseEntity insertOrder(String order){
         try{
-            orderService.insertOrder(order);
+            orderService.insertOrder(new Order(order));
             return new ResponseEntity<>("Ok", HttpStatus.OK);
         } catch (QuantityNotAvailableException paee) {
             return new ResponseEntity<>(paee.toString(),HttpStatus.BAD_REQUEST);
@@ -55,6 +55,8 @@ public class OrderController {
             return new ResponseEntity<>(nqe.toString(), HttpStatus.BAD_REQUEST);
         }
     };
+
+
 
 
 }
