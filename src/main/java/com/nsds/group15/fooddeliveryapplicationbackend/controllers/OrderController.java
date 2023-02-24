@@ -9,10 +9,7 @@ import com.nsds.group15.fooddeliveryapplicationbackend.services.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/order")
@@ -33,7 +30,7 @@ public class OrderController {
     };
 
     @PostMapping("/updateProduct")
-    public ResponseEntity updateProduct(String productName, int quantity){
+    public ResponseEntity updateProduct(@RequestParam String productName, @RequestParam int quantity){
         try{
             orderService.updateQuantity(productName, quantity);
             return new ResponseEntity<>("Ok", HttpStatus.OK);
@@ -45,9 +42,9 @@ public class OrderController {
     };
 
     @PostMapping("/insertOrder")
-    public ResponseEntity insertOrder(String order){
+    public ResponseEntity insertOrder(@RequestBody Order order){
         try{
-            orderService.insertOrder(new Order(order));
+            orderService.insertOrder(order);
             return new ResponseEntity<>("Ok", HttpStatus.OK);
         } catch (QuantityNotAvailableException paee) {
             return new ResponseEntity<>(paee.toString(),HttpStatus.BAD_REQUEST);
@@ -55,8 +52,6 @@ public class OrderController {
             return new ResponseEntity<>(nqe.toString(), HttpStatus.BAD_REQUEST);
         }
     };
-
-
 
 
 }
