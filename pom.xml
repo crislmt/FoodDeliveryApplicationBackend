@@ -13,8 +13,12 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>FoodDeliveryApplicationBackend</name>
     <description>FoodDeliveryApplicationBackend</description>
+
+    <packaging>jar</packaging>
+
     <properties>
         <java.version>17</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <dependencies>
         <dependency>

@@ -45,7 +45,6 @@ public class ShippingService {
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, offsetResetStrategy);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        props.setProperty("log4j.logger.kafka", "WARN");
         registrationConsumer = new KafkaConsumer<>(props);
         orderConsumer=new KafkaConsumer(props);
         registrationConsumer.subscribe(Collections.singleton(registrationTopic));
