@@ -2,6 +2,7 @@ package com.nsds.group15.fooddeliveryapplicationbackend.services;
 
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Customer;
 import com.nsds.group15.fooddeliveryapplicationbackend.exception.CustomerAlreadyExistsException;
+import com.nsds.group15.fooddeliveryapplicationbackend.exception.FailInRegistrationExceptions;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -32,7 +33,7 @@ public class CustomerService {
 
 
 
-    public void registration(Customer c) throws CustomerAlreadyExistsException{
+    public void registration(Customer c) throws CustomerAlreadyExistsException, FailInRegistrationExceptions {
 
         //all this has to be in a transaction, because if one thing fail the registration must fail
 
@@ -54,7 +55,7 @@ public class CustomerService {
                 producer.commitTransaction();
             } catch (InterruptedException | ExecutionException e1) {
                 producer.abortTransaction();
-                e1.printStackTrace();
+                throw new FailInRegistrationExceptions();
             }
         }
         else {

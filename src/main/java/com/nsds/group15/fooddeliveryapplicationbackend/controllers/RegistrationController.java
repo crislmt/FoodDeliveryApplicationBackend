@@ -3,6 +3,7 @@ package com.nsds.group15.fooddeliveryapplicationbackend.controllers;
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Customer;
 import com.nsds.group15.fooddeliveryapplicationbackend.exception.CustomerAlreadyExistsException;
 import com.nsds.group15.fooddeliveryapplicationbackend.exception.CustomerAlreadyExistsException;
+import com.nsds.group15.fooddeliveryapplicationbackend.exception.FailInRegistrationExceptions;
 import com.nsds.group15.fooddeliveryapplicationbackend.services.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,8 @@ public class RegistrationController {
         }
         catch(CustomerAlreadyExistsException caee){
             return new ResponseEntity<>("User already exists", HttpStatus.BAD_REQUEST);
+        } catch (FailInRegistrationExceptions e) {
+            return new ResponseEntity<>("Something went wrong", HttpStatus.BAD_REQUEST);
         }
     }
 }
