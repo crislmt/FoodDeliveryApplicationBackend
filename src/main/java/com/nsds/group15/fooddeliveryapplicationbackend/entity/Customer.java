@@ -1,5 +1,7 @@
 package com.nsds.group15.fooddeliveryapplicationbackend.entity;
 
+import java.util.StringTokenizer;
+
 public class Customer{
     private String email,name,surname,address;
 
@@ -8,6 +10,14 @@ public class Customer{
         this.name = name;
         this.surname = surname;
         this.address = address;
+    }
+
+    public Customer(String msg){
+        StringTokenizer stk = new StringTokenizer(msg,"#");
+        this.email=stk.nextToken();
+        this.name=stk.nextToken();
+        this.surname=stk.nextToken();
+        this.address=stk.nextToken();
     }
 
     public boolean equals(Object obj){
