@@ -3,6 +3,7 @@ package com.nsds.group15.fooddeliveryapplicationbackend.entity;
 import java.util.StringTokenizer;
 
 public class Customer{
+
     private String email,name,surname,address;
 
     public Customer(String email, String name, String surname, String address) {
