@@ -9,12 +9,24 @@ public class Order {
     private String productName;
     private int quantity;
 
+    public Order(String customerEmail, String productName, int quantity){
+        this.customerEmail=customerEmail;
+        this.productName=productName;
+        this.quantity=quantity;
+    }
+
     public Order(String record){
         StringTokenizer stk = new StringTokenizer(record, "#");
         this.customerEmail = stk.nextToken();
         this.productName= stk.nextToken();
         this.quantity = Integer.parseInt(stk.nextToken());
     }
+
+    @Override
+    public String toString(){
+        return "Order n. "+code+" by "+customerEmail+" for "+productName+" with quantity "+quantity;
+    }
+
 
     public String getCustomerEmail() {
         return customerEmail;

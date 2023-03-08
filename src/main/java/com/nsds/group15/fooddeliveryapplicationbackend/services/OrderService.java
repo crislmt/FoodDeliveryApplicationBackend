@@ -2,6 +2,7 @@ package com.nsds.group15.fooddeliveryapplicationbackend.services;
 
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Customer;
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Order;
+import com.nsds.group15.fooddeliveryapplicationbackend.entity.Product;
 import com.nsds.group15.fooddeliveryapplicationbackend.exception.*;
 import com.nsds.group15.fooddeliveryapplicationbackend.utils.Groups;
 import com.nsds.group15.fooddeliveryapplicationbackend.utils.ProducerConsumerFactory;
@@ -12,9 +13,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.aspectj.weaver.ast.Or;
 import org.springframework.stereotype.Service;
-
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -40,27 +39,38 @@ public class OrderService {
     private static final String producerTransactionalId = "OrderServiceTransactionalId";
     private KafkaConsumer<String,String> orderConsumer;
 
-    /****** PRODUCER FOR ITEMS ******/
-    private KafkaProducer<String,String> itemsProducer; //TODO Send messages in all product related methods
-
-    /****** CONSUMER FOR USERS ******/ //TODO Add messages consumption of user registrations
+    /****** CONSUMER FOR USERS *****/
     private KafkaConsumer<String,String> registrationConsumer;
 
-    /****** FAULT TOLERANCE FOR USERS AND ITEMS ******/ //TODO Add fault tolerance also for Items
+    /****** PRODUCER FOR ITEMS ******/
+    private KafkaProducer<String,String> productsProducer; //TODO Send messages in all product related methods
+
+    /****** FAULT TOLERANCE FOR USERS, ITEMS AND ORDERS ******/ //TODO Add fault tolerance also for Items
+    private KafkaConsumer<String,String> recoverCustomersConsumer;
+    private KafkaConsumer<String,String> recoverProductsConsumer;
+    private KafkaConsumer<String,String> recoverOrdersConsumer;
     private static final String offsetResetStrategy = "earliest";
     private static final String isolationLevelStrategy="read_committed";
     private static final String ordersGroup = "ordersGroup";
+    private static final String customersGroup = "customersGroup";
+    private static final String productsGroup = "productsGroup";
+    private static final String customersTopic = "customersTopic";
+    private static final String productsTopic = "productsTopic";
+
+
 
 
 
     public OrderService(){
         productQuantity=new HashMap<>();
         orders=new HashMap<>();
+        customers= new HashMap<>();
         orderProducer = ProducerConsumerFactory.initializeTransactionalProducer(serverAddr, producerTransactionalId);
+        productsProducer= ProducerConsumerFactory.initializeProducer(serverAddr);
         registrationConsumer= ProducerConsumerFactory.initializeConsumer(serverAddr, ordersGroup, isolationLevelStrategy);
-        recover(Groups.ORDER, Topics.ORDER, orders);
-        recover(Groups.ITEM, Topics.ITEM, items);
-        recover(Groups.REGISTRATION, Topics.REGISTRATION, customers);
+        registrationConsumer.subscribe(Collections.singletonList(customersTopic));
+        recoverCustomers();
+        recoverProducts();
     }
 
     public void addProduct(String productName, int quantity) throws ProductAlreadyExistsException, NegativeQuantityException {
@@ -70,6 +80,11 @@ public class OrderService {
         else if(quantity<0) throw new NegativeQuantityException();
         else{
             productQuantity.put(productName,quantity);
+            String product=productName+"#"+quantity;
+            System.out.println(product);
+            ProducerRecord<String,String> record = new ProducerRecord<String,String>(productsTopic,"Key1", product);
+            //TODO Has to be transactional?
+            productsProducer.send(record);
         }
     }
 
@@ -141,26 +156,66 @@ public class OrderService {
         }
     }
 
-    private void recover(String groupId, String topicId, Map map){
-        KafkaConsumer recoverConsumer = ProducerConsumerFactory.initializeConsumer(serverAddr, groupId, isolationLevelStrategy);
-        recoverConsumer.subscribe(Collections.singletonList(topicId));
+    private void recoverCustomers(){
+        System.out.println("I'm here");
+        KafkaConsumer recoverConsumer = ProducerConsumerFactory.initializeConsumer(serverAddr,customersGroup,isolationLevelStrategy);
+        recoverConsumer.subscribe(Collections.singletonList(customersTopic));
         int counter=0;
-        if(map.isEmpty()){
-            ConsumerRecords<String,String> records= recoverConsumer.poll(Duration.of(10, ChronoUnit.SECONDS));
+        if(customers.isEmpty()) {
+            ConsumerRecords<String, String> records = recoverConsumer.poll(Duration.of(10, ChronoUnit.SECONDS));
             recoverConsumer.seekToBeginning(records.partitions());
-            for(ConsumerRecord<String,String> record : records){
-                if(topicId==Topics.ORDER){Order o = new Order(record.value()); map.put(o.getCode(), o); }
-                if(topicId==Topics.ITEM){ Item i = new Item(record.value()); map.put(item.getID, i);}
-                if (topicId==Topics.REGISTRATION) {Customer c= new Customer(record.value()); map.put(c.getEmail(), customers);};
+            for (ConsumerRecord<String, String> record : records) {
+                Customer c = new Customer(record.value());
+                customers.put(c.getEmail(), c);
                 counter++;
             }
-            System.out.println(counter+ "  messages for topic " +topicId+" succesfully retrieved");
-            map.keySet().forEach((value) -> System.out.print(map.get(value)));
+            System.out.println(counter + "  messages for topic " + customersTopic + " succesfully retrieved");
+            customers.keySet().forEach((value) -> System.out.print(customers.get(value)));
             System.out.println(" retrieved");
-
+        }
+        recoverConsumer.unsubscribe();
+    }
+    private void recoverProducts(){
+        KafkaConsumer recoverConsumer = ProducerConsumerFactory.initializeConsumer(serverAddr,productsGroup,isolationLevelStrategy);
+        recoverConsumer.subscribe(Collections.singletonList(productsTopic));
+        int counter=0;
+        if(productQuantity.isEmpty()) {
+            ConsumerRecords<String, String> records = recoverConsumer.poll(Duration.of(10, ChronoUnit.SECONDS));
+            recoverConsumer.seekToBeginning(records.partitions());
+            for (ConsumerRecord<String, String> record : records) {
+                String[] keyValue=record.value().split("#");
+                System.out.println(keyValue[1]);
+                productQuantity.put(keyValue[0], Integer.parseInt(keyValue[1]));
+                counter++;
+                System.out.println(productQuantity.keySet());
+            }
+            System.out.println(counter + " messages for topic " + productsTopic + " succesfully retrieved");
+            productQuantity.keySet().forEach((value) -> System.out.print(value+" with quantity "+productQuantity.get(value)));
+            System.out.println(" retrieved");
+        }
+        recoverConsumer.unsubscribe();
+    }
+    private void recoverOrders(){
+        KafkaConsumer recoverConsumer = ProducerConsumerFactory.initializeConsumer(serverAddr,ordersGroup,isolationLevelStrategy);
+        recoverConsumer.subscribe(Collections.singletonList(insertOrderTopic));
+        int counter=0;
+        if(orders.isEmpty()) {
+            ConsumerRecords<String, String> records = recoverConsumer.poll(Duration.of(10, ChronoUnit.SECONDS));
+            recoverConsumer.seekToBeginning(records.partitions());
+            for (ConsumerRecord<String, String> record : records) {
+                Order o = new Order(record.value());
+                orders.put(o.getCode(), o);
+                counter++;
+            }
+            System.out.println(counter + "  messages for topic " + insertOrderTopic + " succesfully retrieved");
+            orders.keySet().forEach((value) -> System.out.print(orders.get(value)));
+            System.out.println("retrieved");
         }
         recoverConsumer.unsubscribe();
     }
 
-
+    public static void main(String[] args) throws NegativeQuantityException, NoSuchUserException, QuantityNotAvailableException, ProductAlreadyExistsException {
+    }
 }
+
+

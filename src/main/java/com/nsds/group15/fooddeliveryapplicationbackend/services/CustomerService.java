@@ -1,13 +1,9 @@
 package com.nsds.group15.fooddeliveryapplicationbackend.services;
 
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Customer;
-import com.nsds.group15.fooddeliveryapplicationbackend.entity.Order;
 import com.nsds.group15.fooddeliveryapplicationbackend.exception.CustomerAlreadyExistsException;
 import com.nsds.group15.fooddeliveryapplicationbackend.exception.FailInRegistrationExceptions;
-import com.nsds.group15.fooddeliveryapplicationbackend.exception.NegativeQuantityException;
-import com.nsds.group15.fooddeliveryapplicationbackend.exception.QuantityNotAvailableException;
 import com.nsds.group15.fooddeliveryapplicationbackend.utils.ProducerConsumerFactory;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -15,7 +11,6 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.stereotype.Service;
 
@@ -31,7 +26,7 @@ import java.util.concurrent.Future;
 public class CustomerService {
 
     private List<Customer> customers=new ArrayList<>();
-    private String registrationTopic="RegistrationTopic";
+    private String customersTopic ="customersTopic";
     private KafkaProducer<String,String> producer;
     private  String serverAddr = "localhost:9092";
     private static final String producerTransactionalId = "customerServiceTransactionalId";
@@ -61,7 +56,7 @@ public class CustomerService {
             producer.beginTransaction();
             String value=c.getEmail()+"#"+c.getName()+"#"+c.getSurname()+"#"+c.getAddress();
             String key="Key1"; //TODO for now we use a single key for all messages and one single partition
-            ProducerRecord<String, String> record = new ProducerRecord<>(registrationTopic, key, value);
+            ProducerRecord<String, String> record = new ProducerRecord<>(customersTopic, key, value);
             final Future<RecordMetadata> future = producer.send(record);
             try {
                 RecordMetadata ack = future.get();
@@ -95,8 +90,7 @@ public class CustomerService {
 
     private void recoverCustomers(){
         recoverConsumer= ProducerConsumerFactory.initializeConsumer(serverAddr, customerGroup, isolationLevelStrategy);
-
-        recoverConsumer.subscribe(Collections.singletonList(registrationTopic));
+        recoverConsumer.subscribe(Collections.singletonList(customersTopic));
         int counter=0;
         if(customers.isEmpty()){
             ConsumerRecords<String,String> records= recoverConsumer.poll(Duration.of(10, ChronoUnit.SECONDS));
@@ -116,7 +110,7 @@ public class CustomerService {
     public static void main(String[] args) {
         CustomerService cs=new CustomerService();
 
-        for(int i=9;i<100;i++) {
+        for(int i=9;i<11;i++) {
             String email = "e" + i;
             String nome = "n" + i;
             String surname = "s" + i;

@@ -22,6 +22,16 @@ public class ProducerConsumerFactory {
         return producer;
     }
 
+    public static KafkaProducer initializeProducer(String serverAddr){
+        final Properties props = new Properties();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, serverAddr);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, String.valueOf(true));
+        KafkaProducer<String,String> producer = new KafkaProducer<>(props);
+        return producer;
+    }
+
     public static KafkaConsumer initializeConsumer(String serverAddr, String customerGroup, String isolationLevelStrategy){
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, serverAddr);

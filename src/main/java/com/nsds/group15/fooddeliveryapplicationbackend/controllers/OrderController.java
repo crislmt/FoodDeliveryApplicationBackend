@@ -1,10 +1,7 @@
 package com.nsds.group15.fooddeliveryapplicationbackend.controllers;
 
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Order;
-import com.nsds.group15.fooddeliveryapplicationbackend.exception.NegativeQuantityException;
-import com.nsds.group15.fooddeliveryapplicationbackend.exception.ProductAlreadyExistsException;
-import com.nsds.group15.fooddeliveryapplicationbackend.exception.ProductDoNotExistsException;
-import com.nsds.group15.fooddeliveryapplicationbackend.exception.QuantityNotAvailableException;
+import com.nsds.group15.fooddeliveryapplicationbackend.exception.*;
 import com.nsds.group15.fooddeliveryapplicationbackend.services.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -50,6 +47,8 @@ public class OrderController {
             return new ResponseEntity<>(paee.toString(),HttpStatus.BAD_REQUEST);
         } catch(NegativeQuantityException nqe){
             return new ResponseEntity<>(nqe.toString(), HttpStatus.BAD_REQUEST);
+        } catch (NoSuchUserException nsue){
+            return new ResponseEntity<>(nsue.toString(), HttpStatus.BAD_REQUEST);
         }
     };
 

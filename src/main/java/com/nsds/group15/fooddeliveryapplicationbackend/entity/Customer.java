@@ -29,6 +29,11 @@ public class Customer{
         return this.email.equals(other.email);
     }
 
+    @Override
+    public String toString(){
+        return this.email;
+    }
+
     public String getEmail() {
         return email;
     }
