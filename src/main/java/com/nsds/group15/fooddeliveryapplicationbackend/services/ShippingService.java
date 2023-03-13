@@ -3,6 +3,7 @@ import com.nsds.group15.fooddeliveryapplicationbackend.entity.Customer;
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Order;
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Shipping;
 import com.nsds.group15.fooddeliveryapplicationbackend.exception.OrderDoNotExists;
+import com.nsds.group15.fooddeliveryapplicationbackend.utils.MessagesUtilities;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -62,11 +63,7 @@ public class ShippingService {
             customer.setSurname(stringTokenizer.nextToken());
             customer.setAddress(stringTokenizer.nextToken());
             customers.put(customer.getEmail(), customer);
-            System.out.println("Partition: " + record.partition() +
-                    "\tOffset: " + record.offset() +
-                    "\tKey: " + record.key() +
-                    "\tValue: " + record.value()
-            );
+            MessagesUtilities.printRecord(record, "ShippingService");
 
         }
     }
@@ -77,11 +74,7 @@ public class ShippingService {
             Shipping shipping= new Shipping(record.value());
             Customer customer=customers.get(shipping.getCustomerEmail());
             shipping.setAddress(customer.getAddress());
-            System.out.println("Partition: " + record.partition() +
-                    "\tOffset: " + record.offset() +
-                    "\tKey: " + record.key() +
-                    "\tValue: " + record.value()
-            );
+            MessagesUtilities.printRecord(record, "ShippingService");
         }
     }
 

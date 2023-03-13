@@ -2,11 +2,9 @@ package com.nsds.group15.fooddeliveryapplicationbackend.services;
 
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Customer;
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Order;
-import com.nsds.group15.fooddeliveryapplicationbackend.entity.Product;
 import com.nsds.group15.fooddeliveryapplicationbackend.exception.*;
-import com.nsds.group15.fooddeliveryapplicationbackend.utils.Groups;
+import com.nsds.group15.fooddeliveryapplicationbackend.utils.MessagesUtilities;
 import com.nsds.group15.fooddeliveryapplicationbackend.utils.ProducerConsumerFactory;
-import com.nsds.group15.fooddeliveryapplicationbackend.utils.Topics;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -45,7 +43,7 @@ public class OrderService {
     /****** PRODUCER FOR ITEMS ******/
     private KafkaProducer<String,String> productsProducer; //TODO Send messages in all product related methods
 
-    /****** FAULT TOLERANCE FOR USERS, ITEMS AND ORDERS ******/ //TODO Add fault tolerance also for Items
+    /****** FAULT TOLERANCE FOR USERS, ITEMS AND ORDERS ******/
     private KafkaConsumer<String,String> recoverCustomersConsumer;
     private KafkaConsumer<String,String> recoverProductsConsumer;
     private KafkaConsumer<String,String> recoverOrdersConsumer;
@@ -57,10 +55,6 @@ public class OrderService {
     private static final String customersTopic = "customersTopic";
     private static final String productsTopic = "productsTopic";
 
-
-
-
-
     public OrderService(){
         productQuantity=new HashMap<>();
         orders=new HashMap<>();
@@ -71,8 +65,10 @@ public class OrderService {
         registrationConsumer.subscribe(Collections.singletonList(customersTopic));
         recoverCustomers();
         recoverProducts();
+        recoverOrders();
     }
 
+    //TODO Has to be transactional?
     public void addProduct(String productName, int quantity) throws ProductAlreadyExistsException, NegativeQuantityException {
         if(productQuantity.containsKey(productName)){
             throw new ProductAlreadyExistsException();
@@ -83,14 +79,13 @@ public class OrderService {
             String product=productName+"#"+quantity;
             System.out.println(product);
             ProducerRecord<String,String> record = new ProducerRecord<String,String>(productsTopic,"Key1", product);
-            //TODO Has to be transactional?
             productsProducer.send(record);
         }
     }
 
-    //Method to change the quantity of a product in the local state, can be persisted
+    //TODO Has to be transactional?
     public void updateQuantity(String productName, int quantity) throws ProductDoNotExistsException, NegativeQuantityException {
-        if(productQuantity.containsKey(productName)){
+        if(!productQuantity.containsKey(productName)){
             throw new ProductDoNotExistsException();
         }
         else if(quantity<0) throw new NegativeQuantityException();
@@ -98,18 +93,66 @@ public class OrderService {
             int newQuantity=productQuantity.get(productName);
             newQuantity=newQuantity+quantity;
             productQuantity.put(productName,newQuantity);
+            String product=productName+"#"+quantity;
+            System.out.println(product);
+            ProducerRecord<String,String> record = new ProducerRecord<>(productsTopic, "Key1", product);
+            productsProducer.send(record);
         }
-
     }
+
+    /*
+    public void insertOrder(Order o) throws QuantityNotAvailableException, NegativeQuantityException, NoSuchUserException{
+        updateListOfCustomers();
+        orderProducer.beginTransaction();
+        try{
+            if(!customers.containsKey(o.getCustomerEmail())){
+                orderProducer.abortTransaction();
+                throw new NoSuchUserException();
+            }
+            int quantity=productQuantity.get(o.getProductName());
+            int newQuantity=quantity-o.getQuantity();
+            if(o.getQuantity()<0) throw new NegativeQuantityException();
+            if(newQuantity<0) throw new QuantityNotAvailableException();
+            synchronized (this){
+                o.setCode(id);
+                id++;
+            }
+
+            String orderMessage=o.getCode()+"#"+o.getCustomerEmail();
+            String key="Key1"; //TODO for now we use a single key for all message and one single partition
+            ProducerRecord<String, String> recordOrder = new ProducerRecord<>(insertOrderTopic, key, orderMessage);
+            final Future<RecordMetadata> futureOrder = orderProducer.send(recordOrder);
+            RecordMetadata ackProduct = futureOrder.get();
+
+            ProducerRecord<String,String> recordProduct = new ProducerRecord<>(productsTopic, key, productQuantity.get(o.getProductName())+"#"+newQuantity);
+            final Future<RecordMetadata> futureProduct= productsProducer.send(recordProduct);
+            RecordMetadata ackOrder = futureProduct.get();
+
+            productQuantity.put(o.getProductName(),newQuantity);
+            orders.put(o.getCode(), o);
+            System.out.println("Success!");
+            orderProducer.commitTransaction();
+        }
+        catch (InterruptedException | ExecutionException e1 ){
+            e1.printStackTrace();
+        }
+        catch(QuantityNotAvailableException quantityNotAvailableException) { throw new QuantityNotAvailableException(); }
+        catch(NoSuchUserException noSuchUserException){ throw new NoSuchUserException();}
+        catch(NegativeQuantityException negativeQuantityException){throw new NegativeQuantityException();}
+        finally{
+            orderProducer.abortTransaction();
+        }
+    }
+    */
 
     public void insertOrder(Order o) throws QuantityNotAvailableException, NegativeQuantityException, NoSuchUserException {
         updateListOfCustomers();
         orderProducer.beginTransaction();
-        if(!customers.containsKey(o.getCustomerEmail())) throw new NoSuchUserException();
+        if(!customers.containsKey(o.getCustomerEmail())) { orderProducer.abortTransaction(); throw new NoSuchUserException();}
         int quantity=productQuantity.get(o.getProductName());
         int newQuantity=quantity-o.getQuantity();
-        if(o.getQuantity()<0) throw new NegativeQuantityException();
-        if(newQuantity<0) throw new QuantityNotAvailableException();
+        if(o.getQuantity()<0) { orderProducer.abortTransaction(); throw new NegativeQuantityException();}
+        if(newQuantity<0) {orderProducer.abortTransaction(); throw new QuantityNotAvailableException();}
         synchronized (this){
             o.setCode(id);
             id++;
@@ -117,13 +160,17 @@ public class OrderService {
         String orderMessage=o.getCode()+"#"+o.getCustomerEmail();
         String key="Key1"; //TODO for now we use a single key for all message and one single partition
         ProducerRecord<String, String> record = new ProducerRecord<>(insertOrderTopic, key, orderMessage);
+        ProducerRecord<String,String> recordProduct = new ProducerRecord<>(productsTopic, key, o.getProductName()+"#"+newQuantity);
+        final Future<RecordMetadata> futureProduct= productsProducer.send(recordProduct);
         final Future<RecordMetadata> future = orderProducer.send(record);
         try {
             RecordMetadata ack = future.get();
+            RecordMetadata ackOrder = futureProduct.get();
             productQuantity.put(o.getProductName(),newQuantity);
             orders.put(o.getCode(), o);
             System.out.println("Success!");
         } catch (InterruptedException | ExecutionException e1) {
+            orderProducer.abortTransaction();
             e1.printStackTrace();
         }
         orderProducer.commitTransaction();
@@ -146,18 +193,11 @@ public class OrderService {
         for (final ConsumerRecord<String, String> record : records) {
             Customer customer = new Customer(record.value());
             customers.put(customer.getEmail(), customer);
-            System.out.println("Registration message read by OrderService");
-            System.out.println("Partition: " + record.partition() +
-                    "\tOffset: " + record.offset() +
-                    "\tKey: " + record.key() +
-                    "\tValue: " + record.value()
-            );
-
+            MessagesUtilities.printRecord(record, "OrderService");
         }
     }
 
     private void recoverCustomers(){
-        System.out.println("I'm here");
         KafkaConsumer recoverConsumer = ProducerConsumerFactory.initializeConsumer(serverAddr,customersGroup,isolationLevelStrategy);
         recoverConsumer.subscribe(Collections.singletonList(customersTopic));
         int counter=0;
@@ -175,6 +215,7 @@ public class OrderService {
         }
         recoverConsumer.unsubscribe();
     }
+
     private void recoverProducts(){
         KafkaConsumer recoverConsumer = ProducerConsumerFactory.initializeConsumer(serverAddr,productsGroup,isolationLevelStrategy);
         recoverConsumer.subscribe(Collections.singletonList(productsTopic));
@@ -184,14 +225,12 @@ public class OrderService {
             recoverConsumer.seekToBeginning(records.partitions());
             for (ConsumerRecord<String, String> record : records) {
                 String[] keyValue=record.value().split("#");
-                System.out.println(keyValue[1]);
                 productQuantity.put(keyValue[0], Integer.parseInt(keyValue[1]));
                 counter++;
-                System.out.println(productQuantity.keySet());
             }
             System.out.println(counter + " messages for topic " + productsTopic + " succesfully retrieved");
-            productQuantity.keySet().forEach((value) -> System.out.print(value+" with quantity "+productQuantity.get(value)));
-            System.out.println(" retrieved");
+            System.out.println(productQuantity.keySet());
+            productQuantity.keySet().forEach((value) -> System.out.println(value+" with quantity "+productQuantity.get(value)));
         }
         recoverConsumer.unsubscribe();
     }
