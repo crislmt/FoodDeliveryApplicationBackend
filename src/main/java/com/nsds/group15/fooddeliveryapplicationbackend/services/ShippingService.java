@@ -4,6 +4,7 @@ import com.nsds.group15.fooddeliveryapplicationbackend.entity.Order;
 import com.nsds.group15.fooddeliveryapplicationbackend.entity.Shipping;
 import com.nsds.group15.fooddeliveryapplicationbackend.exception.OrderDoNotExists;
 import com.nsds.group15.fooddeliveryapplicationbackend.utils.MessagesUtilities;
+import com.nsds.group15.fooddeliveryapplicationbackend.utils.ProducerConsumerFactory;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -22,16 +23,19 @@ public class ShippingService {
     private List<Order> orders;
     private String insertOrderTopic="InsertOrderTopic";
     private String registrationTopic="RegistrationTopic";
-    private static final String groupId="shippingGroup";
+    private static final String groupId="shippingGroup"; //TODO Same group id for both topic?
     KafkaConsumer<String, String> registrationConsumer;
     KafkaConsumer<String, String> orderConsumer;
     private static final String serverAddr = "localhost:9092";
     private static final String offsetResetStrategy = "latest";
     private static final boolean readUncommitted = false;
 
+    //TODO Check poll duration when trying to implement the distributed version
 
     public ShippingService(){
         initialize();
+        registrationConsumer= ProducerConsumerFactory.initializeConsumer(serverAddr, groupId, registrationTopic);
+        orderConsumer=ProducerConsumerFactory.initializeConsumer(serverAddr, groupId, insertOrderTopic);
         this.shippings=new ArrayList<>();
         this.orders=new ArrayList<>();
         this.customers=new HashMap<>();

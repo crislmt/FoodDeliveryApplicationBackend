@@ -78,7 +78,7 @@ public class OrderService {
             productQuantity.put(productName,quantity);
             String product=productName+"#"+quantity;
             System.out.println(product);
-            ProducerRecord<String,String> record = new ProducerRecord<String,String>(productsTopic,"Key1", product);
+            ProducerRecord<String,String> record = new ProducerRecord<String,String>(productsTopic,productName, product);
             productsProducer.send(record);
         }
     }
@@ -95,59 +95,15 @@ public class OrderService {
             productQuantity.put(productName,newQuantity);
             String product=productName+"#"+quantity;
             System.out.println(product);
-            ProducerRecord<String,String> record = new ProducerRecord<>(productsTopic, "Key1", product);
+            ProducerRecord<String,String> record = new ProducerRecord<>(productsTopic, productName, product);
             productsProducer.send(record);
         }
     }
 
-    /*
-    public void insertOrder(Order o) throws QuantityNotAvailableException, NegativeQuantityException, NoSuchUserException{
+    /* public void insertOrder(Order o) throws QuantityNotAvailableException, NegativeQuantityException, NoSuchUserException {
         updateListOfCustomers();
         orderProducer.beginTransaction();
-        try{
-            if(!customers.containsKey(o.getCustomerEmail())){
-                orderProducer.abortTransaction();
-                throw new NoSuchUserException();
-            }
-            int quantity=productQuantity.get(o.getProductName());
-            int newQuantity=quantity-o.getQuantity();
-            if(o.getQuantity()<0) throw new NegativeQuantityException();
-            if(newQuantity<0) throw new QuantityNotAvailableException();
-            synchronized (this){
-                o.setCode(id);
-                id++;
-            }
-
-            String orderMessage=o.getCode()+"#"+o.getCustomerEmail();
-            String key="Key1"; //TODO for now we use a single key for all message and one single partition
-            ProducerRecord<String, String> recordOrder = new ProducerRecord<>(insertOrderTopic, key, orderMessage);
-            final Future<RecordMetadata> futureOrder = orderProducer.send(recordOrder);
-            RecordMetadata ackProduct = futureOrder.get();
-
-            ProducerRecord<String,String> recordProduct = new ProducerRecord<>(productsTopic, key, productQuantity.get(o.getProductName())+"#"+newQuantity);
-            final Future<RecordMetadata> futureProduct= productsProducer.send(recordProduct);
-            RecordMetadata ackOrder = futureProduct.get();
-
-            productQuantity.put(o.getProductName(),newQuantity);
-            orders.put(o.getCode(), o);
-            System.out.println("Success!");
-            orderProducer.commitTransaction();
-        }
-        catch (InterruptedException | ExecutionException e1 ){
-            e1.printStackTrace();
-        }
-        catch(QuantityNotAvailableException quantityNotAvailableException) { throw new QuantityNotAvailableException(); }
-        catch(NoSuchUserException noSuchUserException){ throw new NoSuchUserException();}
-        catch(NegativeQuantityException negativeQuantityException){throw new NegativeQuantityException();}
-        finally{
-            orderProducer.abortTransaction();
-        }
-    }
-    */
-
-    public void insertOrder(Order o) throws QuantityNotAvailableException, NegativeQuantityException, NoSuchUserException {
-        updateListOfCustomers();
-        orderProducer.beginTransaction();
+        if(!productQuantity.containsKey(o.getProductName())){orderProducer.abortTransaction(); return;}
         if(!customers.containsKey(o.getCustomerEmail())) { orderProducer.abortTransaction(); throw new NoSuchUserException();}
         int quantity=productQuantity.get(o.getProductName());
         int newQuantity=quantity-o.getQuantity();
@@ -158,9 +114,8 @@ public class OrderService {
             id++;
         }
         String orderMessage=o.getCode()+"#"+o.getCustomerEmail();
-        String key="Key1"; //TODO for now we use a single key for all message and one single partition
-        ProducerRecord<String, String> record = new ProducerRecord<>(insertOrderTopic, key, orderMessage);
-        ProducerRecord<String,String> recordProduct = new ProducerRecord<>(productsTopic, key, o.getProductName()+"#"+newQuantity);
+        ProducerRecord<String, String> record = new ProducerRecord<>(insertOrderTopic,""+o.getCode(), orderMessage);
+        ProducerRecord<String,String> recordProduct = new ProducerRecord<>(productsTopic, o.getProductName(), o.getProductName()+"#"+newQuantity);
         final Future<RecordMetadata> futureProduct= productsProducer.send(recordProduct);
         final Future<RecordMetadata> future = orderProducer.send(record);
         try {
@@ -169,9 +124,40 @@ public class OrderService {
             productQuantity.put(o.getProductName(),newQuantity);
             orders.put(o.getCode(), o);
             System.out.println("Success!");
-        } catch (InterruptedException | ExecutionException e1) {
+        } catch (Exception e) {
             orderProducer.abortTransaction();
-            e1.printStackTrace();
+            e.printStackTrace();
+        }
+        orderProducer.commitTransaction();
+    }*/
+
+    public void insertOrder(Order o) throws QuantityNotAvailableException, NegativeQuantityException, NoSuchUserException, ProductDoNotExistsException {
+        updateListOfCustomers();
+        if(!productQuantity.containsKey(o.getProductName())) throw new ProductDoNotExistsException();
+        if(!customers.containsKey(o.getCustomerEmail())) throw new NoSuchUserException();
+        int quantity=productQuantity.get(o.getProductName());
+        int newQuantity=quantity-o.getQuantity();
+        if(o.getQuantity()<0) throw new NegativeQuantityException();
+        if(newQuantity<0) throw new QuantityNotAvailableException();
+        synchronized (this){
+            o.setCode(id);
+            id++;
+        }
+        String orderMessage=o.getCode()+"#"+o.getCustomerEmail();
+        orderProducer.beginTransaction();
+        ProducerRecord<String, String> record = new ProducerRecord<>(insertOrderTopic,""+o.getCode(), orderMessage);
+        ProducerRecord<String,String> recordProduct = new ProducerRecord<>(productsTopic, o.getProductName(), o.getProductName()+"#"+newQuantity);
+        final Future<RecordMetadata> futureProduct= productsProducer.send(recordProduct);
+        final Future<RecordMetadata> future = orderProducer.send(record);
+        try {
+            RecordMetadata ack = future.get();
+            RecordMetadata ackOrder = futureProduct.get();
+            productQuantity.put(o.getProductName(),newQuantity);
+            orders.put(o.getCode(), o);
+            System.out.println("Success!");
+        } catch (Exception e) {
+            orderProducer.abortTransaction();
+            e.printStackTrace();
         }
         orderProducer.commitTransaction();
     }
@@ -189,7 +175,7 @@ public class OrderService {
 
     //Used to retrieve registration messages
     private void updateListOfCustomers(){
-        final ConsumerRecords<String, String> records = registrationConsumer.poll(Duration.of(10, ChronoUnit.SECONDS));
+        final ConsumerRecords<String, String> records = registrationConsumer.poll(Duration.of(0, ChronoUnit.SECONDS));
         for (final ConsumerRecord<String, String> record : records) {
             Customer customer = new Customer(record.value());
             customers.put(customer.getEmail(), customer);
@@ -202,7 +188,7 @@ public class OrderService {
         recoverConsumer.subscribe(Collections.singletonList(customersTopic));
         int counter=0;
         if(customers.isEmpty()) {
-            ConsumerRecords<String, String> records = recoverConsumer.poll(Duration.of(10, ChronoUnit.SECONDS));
+            ConsumerRecords<String, String> records = recoverConsumer.poll(Duration.of(0, ChronoUnit.SECONDS));
             recoverConsumer.seekToBeginning(records.partitions());
             for (ConsumerRecord<String, String> record : records) {
                 Customer c = new Customer(record.value());
@@ -221,7 +207,7 @@ public class OrderService {
         recoverConsumer.subscribe(Collections.singletonList(productsTopic));
         int counter=0;
         if(productQuantity.isEmpty()) {
-            ConsumerRecords<String, String> records = recoverConsumer.poll(Duration.of(10, ChronoUnit.SECONDS));
+            ConsumerRecords<String, String> records = recoverConsumer.poll(Duration.of(0, ChronoUnit.SECONDS));
             recoverConsumer.seekToBeginning(records.partitions());
             for (ConsumerRecord<String, String> record : records) {
                 String[] keyValue=record.value().split("#");
@@ -239,7 +225,7 @@ public class OrderService {
         recoverConsumer.subscribe(Collections.singletonList(insertOrderTopic));
         int counter=0;
         if(orders.isEmpty()) {
-            ConsumerRecords<String, String> records = recoverConsumer.poll(Duration.of(10, ChronoUnit.SECONDS));
+            ConsumerRecords<String, String> records = recoverConsumer.poll(Duration.of(0, ChronoUnit.SECONDS));
             recoverConsumer.seekToBeginning(records.partitions());
             for (ConsumerRecord<String, String> record : records) {
                 Order o = new Order(record.value());

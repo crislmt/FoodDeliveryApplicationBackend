@@ -49,6 +49,8 @@ public class OrderController {
             return new ResponseEntity<>(nqe.toString(), HttpStatus.BAD_REQUEST);
         } catch (NoSuchUserException nsue){
             return new ResponseEntity<>(nsue.toString(), HttpStatus.BAD_REQUEST);
+        } catch (ProductDoNotExistsException pdnee) {
+            return new ResponseEntity<>(pdnee.toString(), HttpStatus.BAD_REQUEST);
         }
     };
 

@@ -25,12 +25,16 @@ import java.util.concurrent.Future;
 @Service
 public class CustomerService {
 
+    /****** DATA STRUCTURES ******/
     private List<Customer> customers=new ArrayList<>();
+
+    /****** BROKER SERVER ADDRESS ******/
+    private  String serverAddr = "localhost:9092";
+
+    /****** CUSTOMER PRODUCER ******/
+    private static final String producerTransactionalId = "customerServiceTransactionalId";
     private String customersTopic ="customersTopic";
     private KafkaProducer<String,String> producer;
-    private  String serverAddr = "localhost:9092";
-    private static final String producerTransactionalId = "customerServiceTransactionalId";
-
 
     /****** FAULT TOLLERANCE ******/
     private KafkaConsumer<String,String> recoverConsumer;
@@ -40,27 +44,19 @@ public class CustomerService {
 
 
     public CustomerService(){
-        initialize();
+        producer=ProducerConsumerFactory.initializeTransactionalProducer(serverAddr,customersTopic);
         recoverCustomers();
     }
 
-
-
     public void registration(Customer c) throws CustomerAlreadyExistsException, FailInRegistrationExceptions {
-
-        //all this has to be in a transaction, because if one thing fail the registration must fail
-
-        //not totally sure if the beginTransaction has to be before the if statement
-        //TODO The list of the customer must become persistent in someway, fix this later
-        if(!customers.contains(c)){
+         if(!customers.contains(c)){
             producer.beginTransaction();
             String value=c.getEmail()+"#"+c.getName()+"#"+c.getSurname()+"#"+c.getAddress();
-            String key="Key1"; //TODO for now we use a single key for all messages and one single partition
+            String key=c.getEmail();
             ProducerRecord<String, String> record = new ProducerRecord<>(customersTopic, key, value);
             final Future<RecordMetadata> future = producer.send(record);
             try {
                 RecordMetadata ack = future.get();
-                System.out.println("Success!");
                 customers.add(c);
                 for(Customer c1:customers){
                     System.out.println(c1.getEmail());
@@ -77,17 +73,6 @@ public class CustomerService {
 
     }
 
-    private void initialize(){
-        final Properties props = new Properties();
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, serverAddr);
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        props.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, producerTransactionalId);
-        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, String.valueOf(true));
-        producer = new KafkaProducer<>(props);
-        producer.initTransactions();
-    }
-
     private void recoverCustomers(){
         recoverConsumer= ProducerConsumerFactory.initializeConsumer(serverAddr, customerGroup, isolationLevelStrategy);
         recoverConsumer.subscribe(Collections.singletonList(customersTopic));
@@ -99,7 +84,6 @@ public class CustomerService {
                 customers.add(new Customer(record.value()));
                 counter++;
             }
-            System.out.println("<<< Cached Users >>>");
             System.out.println(counter+ " customers succesfully retrieved");
             customers.forEach((value) -> System.out.println(value.getEmail()));
         }
